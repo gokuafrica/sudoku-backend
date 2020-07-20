@@ -1,8 +1,8 @@
-FROM maven as builder
+FROM maven:3.6.3-openjdk-8 as builder
 # Set the working directory.
 WORKDIR /usr/src/mymaven
 COPY ./ /usr/src/mymaven
-CMD [ "maven:3.3-jdk-8" , "mvn" , "clean" , "install" ]
+RUN [ "mvn" , "clean" , "install" ]
 
 FROM openjdk:8
 COPY --from=builder /usr/src/mymaven/target /usr/src/myapp
