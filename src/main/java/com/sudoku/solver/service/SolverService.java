@@ -4,13 +4,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.Callable;
 
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import generic.Pair;
 
 @Service
-public class SolverService {
+@Scope("prototype")
+public class SolverService implements Callable<int []>{
+	
+	private int[] input;
+	
+	public SolverService(int[] input) {
+		this.input = input;
+	}
 	
 	private static int determineStart(int pos){
 	    if(pos>=6)
@@ -36,7 +45,9 @@ public class SolverService {
         result.addAll(allPossible);
         return result;
 	}
-	private static boolean recur(int[][] sudoku, int index, ArrayList<Pair<Integer,Integer>> zeroes){
+	private static boolean recur(int[][] sudoku, int index, ArrayList<Pair<Integer,Integer>> zeroes) throws InterruptedException{
+		if(Thread.currentThread().isInterrupted())
+			throw new InterruptedException();
         if(index==zeroes.size())
             return true;
         Pair<Integer,Integer> coordinate = zeroes.get(index);
@@ -55,25 +66,32 @@ public class SolverService {
         }
         return bool;
 	}
-    private static void solver(int[][] sudoku){
+    private static void solver(int[][] sudoku) throws InterruptedException{
         ArrayList<Pair<Integer,Integer>> zeroes = new ArrayList<>(81);
         for(int i=0;i<9;++i)
                 for(int j=0;j<9;++j)
                     if(sudoku[i][j]==0)
                         zeroes.add(new Pair<>(i,j));
-        recur(sudoku,0,zeroes);
+        
+        recur(sudoku,0,zeroes);	
     }
 	
-	public int[] solveForSudoku(int[] input) {
+	@Override
+	public int[] call() throws Exception {
 		int[][] trueInput = new int[9][9];
 		for(int i=0,c=0;i<9;++i)
 			for(int j=0;j<9;++j)
 				trueInput[i][j] = input[c++];
-		solver(trueInput);
-		int[] result = new int[81];
-		for(int i=0,c=0;i<9;++i)
-			for(int j=0;j<9;++j)
-				result[c++]=trueInput[i][j];
-		return result;
+		try {
+			solver(trueInput);			
+			int[] result = new int[81];
+			for(int i=0,c=0;i<9;++i)
+				for(int j=0;j<9;++j)
+					result[c++]=trueInput[i][j];
+			return result;
+		}
+		catch(InterruptedException e) {
+			return input;
+		}
 	}
 }
